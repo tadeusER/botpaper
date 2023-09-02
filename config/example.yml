@@ -1,0 +1,14 @@
+schedules:
+  - cron_schedule: '0 7 * * *'
+    search_keywords:
+      - python
+      - machine learning
+      - discord.py
+    channel: articles-channel1
+
+  - cron_schedule: '0 12 * * *'  # Ejemplo: ejecutar todos los días a las 12 p.m.
+    search_keywords:
+      - AI
+      - OpenAI
+      - GPT
+    channel: articles-channel2
