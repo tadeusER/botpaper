@@ -1,8 +1,9 @@
 import urllib.parse
 import urllib.request
 import feedparser
+from infrastructure.api_abstract import APIExtraction
 
-class ArxivAPI:
+class ArxivAPI(APIExtraction):
     """
     Clase que proporciona una interfaz para buscar artículos en el repositorio de arXiv.
 
