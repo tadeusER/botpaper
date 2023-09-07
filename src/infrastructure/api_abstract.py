@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import List, Union
 
-from models.api_model import APIResponse
-
+from models.api_model import APIErrorResponse, APIResponse, APISuccessResponse
 
 class APIExtraction(ABC):
 
     @abstractmethod
-    def search(self, queries, search_types, operators=None) -> APIResponse:
+    def search(self, queries, search_types, operators=None) -> APISuccessResponse:
         pass
 
     @abstractmethod
@@ -22,5 +22,5 @@ class APIExtraction(ABC):
         pass
 
     @abstractmethod
-    def search_multiple_terms(self, terms) -> APIResponse:
+    def search_multiple_terms(self, terms) -> Union[List[APIResponse], APIErrorResponse]:
         pass
