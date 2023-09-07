@@ -1,4 +1,8 @@
+from typing import List, Union
 import requests
+
+from models.api_model import APIErrorResponse, APIResponse, APISuccessResponse
+from models.paper_model import ArticleMetadata
 
 class CambridgeAPI:
     """
@@ -44,8 +48,16 @@ class CambridgeAPI:
         """
         return value in self.VALID_SORT_VALUES
 
-    def search(self, term="", skip=0, limit=None, sort="PUBLISHED_DATE_DESC", 
-               author="", searchDateFrom="", searchDateTo="", categoryIds=None, subjectIds=None):
+    def search(self, 
+               term="", 
+               skip=None, 
+               limit=20, 
+               sort="PUBLISHED_DATE_DESC",
+               author=None, 
+               searchDateFrom=None, 
+               searchDateTo=None, 
+               categoryIds=None, 
+               subjectIds=None)->APIResponse:
         """
         Realiza una búsqueda en el repositorio de Cambridge y devuelve una lista de artículos que coinciden con la consulta.
 
@@ -73,21 +85,35 @@ class CambridgeAPI:
         params = {
             "term": term,
             "skip": skip,
-            "limit": limit or self.max_results,
+            "limit": limit if limit else self.max_results,
             "sort": sort,
             "author": author,
             "searchDateFrom": searchDateFrom,
-            "searchDateTo": searchDateTo
+            "searchDateTo": searchDateTo,
+            "categoryIds": categoryIds,
+            "subjectIds": subjectIds
         }
-        
-        if categoryIds:
-            params["categoryIds"] = categoryIds
-        if subjectIds:
-            params["subjectIds"] = subjectIds
 
-        response = requests.get(self.BASE_URL, params=params)
-        return response.json()
-    def search_multiple_terms(self, terms):
+        params = {key: value for key, value in params.items() if value} 
+        try:
+            response = requests.get(self.BASE_URL, params=params)
+            response_data = response.json()
+
+            # Creando una lista de objetos ArticleMetadata a partir de la respuesta
+            articles = [
+                ArticleMetadata(
+                    title=item["item"]["title"],
+                    summary=item["item"]["abstract"],
+                    published=item["item"]["publishedDate"],
+                    link=item["item"]["doi"]  # Asume que el DOI puede ser utilizado como enlace, modifica según sea necesario
+                )
+                for item in response_data["itemHits"]
+            ]
+
+            return APISuccessResponse(data=articles)
+        except Exception as e:
+            return APIErrorResponse(error_message=str(e))
+    def search_multiple_terms(self, terms: List[str]) -> Union[List[APIResponse], APIErrorResponse]:
         """
         Realiza búsquedas para cada término en la lista de términos y almacena todos los resultados en una lista.
 
@@ -97,13 +123,13 @@ class CambridgeAPI:
         Returns:
             list: Lista de todos los resultados obtenidos para cada término.
         """
-        
         all_results = []
 
         for term in terms:
             term_results = self.search(term=term)
-            all_results.extend(term_results)
-
+            if isinstance(term_results, APIErrorResponse):
+                return term_results
+            all_results.append(term_results)
         return all_results
 if __name__ == "__main__":
     api = CambridgeAPI(max_results=20)

@@ -116,7 +116,12 @@ class ArxivAPI(APIExtraction):
             feed = feedparser.parse(response.read().decode('utf-8'))
             articles = []
             for entry in feed.entries:
-                articles.append(ArticleMetadata(entry.title, entry.summary, entry.published, entry.link))
+                articles.append(ArticleMetadata(
+                            entry.title, 
+                            entry.summary, 
+                            entry.published, 
+                            entry.link
+                        ))
             return APISuccessResponse(data=articles)
         except Exception as e:
             return APIErrorResponse(error_message=str(e))
