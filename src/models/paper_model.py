@@ -26,3 +26,19 @@ class ArticleMetadata:
             'published': self.published.isoformat(),
             'link': self.link
         }
+from typing import List
+
+class Schedule:
+    def __init__(self, 
+                 channel: str, 
+                 app: str, 
+                 cron_schedule: str, 
+                 search_keywords: List[str]) -> None:
+        self.channel = channel
+        self.app = app
+        self.cron_schedule = cron_schedule
+        self.search_keywords = search_keywords
+
+    def __str__(self) -> str:
+        return f"Channel: {self.channel}, App: {self.app}, Cron: {self.cron_schedule}, Keywords: {', '.join(self.search_keywords)}"
+

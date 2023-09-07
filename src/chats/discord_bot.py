@@ -1,46 +1,32 @@
 import discord
 from discord.ext import commands
+from infrastructure.bot_abstract import AbstractChatBot
 
-TOKEN = 'YOUR_DISCORD_BOT_TOKEN'
-PREFIX = '!'
+class DiscordBot(AbstractChatBot):
 
-bot = commands.Bot(command_prefix=PREFIX)
+    def __init__(self, token, prefix):
+        self.token = token
+        self.prefix = prefix
+        self.bot = commands.Bot(command_prefix=self.prefix)
 
-# ... (importaciones y demás configuración)
+    async def connect(self):
+        await self.bot.start(self.token)
 
-# Cargar configuraciones del archivo YAML
-with open('config.yaml', 'r') as file:
-    data = yaml.safe_load(file)
+    async def disconnect(self):
+        # Discord library uses `close` to disconnect a bot.
+        await self.bot.close()
 
-schedules = data.get('schedules', [])
+    async def send_message(self, channel, message):
+        target_channel = discord.utils.get(self.bot.get_all_channels(), name=channel)
+        if target_channel:
+            await target_channel.send(message)
 
-@bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user.name} ({bot.user.id})')
+    async def listen_messages(self, callback):
+        @self.bot.event
+        async def on_message(message):
+            if message.author == self.bot.user:
+                return
+            await callback(message)
 
-    for schedule in schedules:
-        # Asegurarse de que el canal exista
-        for guild in bot.guilds:
-            channel_name = schedule.get('channel')
-            exists = discord.utils.get(guild.channels, name=channel_name)
-            if not exists:
-                await guild.create_text_channel(channel_name)
-                print(f"Channel {channel_name} created.")
 
-        # Programar el cronjob
-        cron_time = schedule.get('cron_schedule', '')
-        if cron_time:
-            @aiocron.crontab(cron_time)
-            async def cronjob():
-                for keyword in schedule.get('search_keywords', []):
-                    # Aquí colocas la lógica para buscar los artículos con tu keyword
-                    # Supongamos que articles_search_function es la función que devuelve los artículos
-                    articles = await articles_search_function(keyword)
-                    
-                    channel_name = schedule.get('channel')
-                    channel = discord.utils.get(guild.channels, name=channel_name)
-                    for article in articles:
-                        await channel.send(article)  # Suponiendo que el artículo es un string
-
-bot.run(TOKEN)
 

@@ -1,14 +1,16 @@
 schedules:
-  - cron_schedule: '0 7 * * *'
+  - channel: "daily-articles"
+    app: discord
+    cron_schedule: "0 9 * * *"  # Todos los días a las 9 AM
     search_keywords:
-      - python
-      - machine learning
-      - discord.py
-    channel: articles-channel1
+      - "keyword1"
+      - "keyword2"
+      - "keyword3"
 
-  - cron_schedule: '0 12 * * *'  # Ejemplo: ejecutar todos los días a las 12 p.m.
+  - channel: "weekly-articles"
+    app: slack
+    cron_schedule: "0 10 * * MON"  # Todos los lunes a las 10 AM
     search_keywords:
-      - AI
-      - OpenAI
-      - GPT
-    channel: articles-channel2
+      - "weekly-keyword1"
+      - "weekly-keyword2"
+
