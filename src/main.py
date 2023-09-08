@@ -5,6 +5,7 @@ from typing import List
 import yaml
 from dotenv import load_dotenv
 from bot import ResearchBotScheduler
+from models.logger_model import LoggerConfig
 
 from models.paper_model import Schedule
 
@@ -15,6 +16,8 @@ SLACK_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 DEFAULT_YAML_PATH = os.getenv('DEFAULT_YAML_PATH')
 XPLORE_API_KEY = os.getenv('XPLORE_API_KEY')
 SPRINGER_API_KEY = os.getenv('SPRINGER_API_KEY')
+config = LoggerConfig(name="ResearchBot", log_file="research_bot.log")
+logger = config.get_logger()
 
 def check_api_keys():
     missing_keys = []
@@ -90,12 +93,12 @@ def main():
     args = getargs()
 
     if not check_yaml_exists(args.config):
-        print(f"Error: The specified YAML configuration file at '{args.config}' does not exist.")
+        logger.error(f"The specified YAML configuration file at '{args.config}' does not exist.")
         exit(1)
 
     schedules = get_schedules_from_yaml(args.config)
     if not schedules:
-        print("Error: No schedules specified in the YAML configuration.")
+        logger.error("No schedules specified in the YAML configuration.")
         exit(1)
 
     threads = []
@@ -105,14 +108,14 @@ def main():
         missing_keys = check_api_keys()
 
         if missing_tokens:
-            print(f"Error for {schedule.app}: Missing environment variables: {', '.join(missing_tokens)}")
+            logger.error(f"Error for {schedule.app}: Missing environment variables: {', '.join(missing_tokens)}")
             continue
 
         if missing_keys:
-            print(f"Error for {schedule.app}: Missing API keys: {', '.join(missing_keys)}")
+            logger.error(f"Error for {schedule.app}: Missing API keys: {', '.join(missing_keys)}")
             continue
 
-        print(f"Starting scheduler for app: {schedule.app} and channel: {schedule.channel}")
+        logger.info(f"Starting scheduler for app: {schedule.app} and channel: {schedule.channel}")
 
         # Usar threading para ejecutar cada ResearchBotScheduler en su propio hilo
         thread = threading.Thread(target=run_scheduler, args=(schedule,))
@@ -123,7 +126,7 @@ def main():
     for thread in threads:
         thread.join()
 
-    print("All schedulers are now running.")
+    logger.info("All schedulers are now running.")
 
 if __name__ == "__main__":
     main()

@@ -2,12 +2,16 @@ from typing import List
 from chats.discord_bot import DiscordBot
 from chats.matrix_bot import MatrixBot
 from chats.slack_bot import SlackBot
+from models.logger_model import LoggerConfig
 from models.paper_model import ArticleMetadata, Schedule
 from service.api_consumer import ResearchPaperSearcher
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+# Crea una instancia de LoggerConfig y obtén el logger.
 
+config = LoggerConfig(name="ResearchBotScheduler", log_file="scheduler_bot.log")
+logger = config.get_logger()
 class ResearchBotScheduler:
     def __init__(self, 
                  schedule: Schedule, 
@@ -45,6 +49,9 @@ class ResearchBotScheduler:
         # Realiza una búsqueda de artículos
         articles = self.research_searcher.search(self.schedule.search_keywords)
         
+        if not articles:
+            logger.warning("No articles found for the given search keywords.")
+            return
         # Formatea los artículos para enviarlos como mensaje
         message = self.format_articles(articles)
         
@@ -55,6 +62,8 @@ class ResearchBotScheduler:
             await bot_instance.connect()
             await bot_instance.send_message(self.schedule.channel, message)
             await bot_instance.disconnect()
+        else:
+            logger.error(f"Unsupported app: {self.schedule.app}")
 
     def format_articles(self, articles: List[ArticleMetadata]) -> str:
         formatted_articles = [f"{article.title} - {article.link}" for article in articles]
