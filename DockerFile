@@ -4,15 +4,18 @@ FROM python:3.9-slim-buster
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar los archivos necesarios al contenedor
+# Copiar requirements.txt desde el directorio raíz del proyecto
 COPY requirements.txt .
-COPY app.py .
+
+# Copiar todo el directorio src al contenedor
+COPY src/ /app/
 
 # Instalar las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto 5000
+# Exponer el puerto 5000 (ajusta este puerto si tu aplicación usa un puerto diferente)
 EXPOSE 5000
 
 # Comando para ejecutar la aplicación
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
+
