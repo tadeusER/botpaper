@@ -1,8 +1,10 @@
 import os
 import argparse
+import threading
 from typing import List
 import yaml
 from dotenv import load_dotenv
+from bot import ResearchBotScheduler
 
 from models.paper_model import Schedule
 
@@ -65,17 +67,24 @@ def getargs():
     args = parser.parse_args()
     return args
 
-def run_bot(schedule: Schedule):
-    # Aquí puedes instanciar y ejecutar tu bot dependiendo del 'app' de la instancia de Schedule.
-    # Por ejemplo:
-    if schedule.app == 'discord':
-        print(f"Running Discord bot for channel {schedule.channel}...")
-        # bot = DiscordBot()
-        # bot.run(DISCORD_TOKEN)
-    elif schedule.app == 'slack':
-        print(f"Running Slack bot for channel {schedule.channel}...")
-        # bot = SlackBot()
-        # bot.run(SLACK_TOKEN)
+def run_scheduler(schedule: Schedule):
+    extraction_tokens = {
+        "xplore": XPLORE_API_KEY,
+        "springer": SPRINGER_API_KEY,
+        # Puedes agregar otros tokens aquí
+    }
+
+    # Elegir el token del bot basado en el app
+    if schedule.app == "discord":
+        bot_token = DISCORD_TOKEN
+    elif schedule.app == "slack":
+        bot_token = SLACK_TOKEN
+    else:
+        bot_token = None  # o manejar esto de otra manera
+
+    # Iniciar el ResearchBotScheduler
+    scheduler = ResearchBotScheduler(schedule, bot_token, extraction_tokens)
+    scheduler.start_scheduler()
 
 def main():
     args = getargs()
@@ -97,26 +106,24 @@ def main():
 
         if missing_tokens:
             print(f"Error for {schedule.app}: Missing environment variables: {', '.join(missing_tokens)}")
-            continue  # This will skip the current iteration and move to the next schedule.
+            continue
 
         if missing_keys:
             print(f"Error for {schedule.app}: Missing API keys: {', '.join(missing_keys)}")
-            continue  # This will skip the current iteration and move to the next schedule.
+            continue
 
-        print(f"Starting bot for app: {schedule.app} and channel: {schedule.channel}")
-        
-        thread = threading.Thread(target=run_bot, args=(schedule,))
+        print(f"Starting scheduler for app: {schedule.app} and channel: {schedule.channel}")
+
+        # Usar threading para ejecutar cada ResearchBotScheduler en su propio hilo
+        thread = threading.Thread(target=run_scheduler, args=(schedule,))
         thread.start()
         threads.append(thread)
 
-    # Wait for all threads to complete
+    # Esperar a que todos los hilos finalicen
     for thread in threads:
         thread.join()
 
-    print("All bots are now running.")
-
-if __name__ == "__main__":
-    main()
+    print("All schedulers are now running.")
 
 if __name__ == "__main__":
     main()

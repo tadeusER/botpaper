@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 
 class ArticleMetadata:
     def __init__(self, title: str, summary: str, published: str, link: str):
@@ -26,7 +26,6 @@ class ArticleMetadata:
             'published': self.published.isoformat(),
             'link': self.link
         }
-from typing import List
 
 class Schedule:
     def __init__(self, 

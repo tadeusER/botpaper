@@ -1,54 +1,64 @@
-import os
-import yaml
-import aiocron
+from typing import List
 from chats.discord_bot import DiscordBot
-# Suponiendo que tengas un SlackBot similar al DiscordBot
-# from chats.slack_bot import SlackBot
-from infrastructure.api_abstract import APIExtraction
+from chats.matrix_bot import MatrixBot
+from chats.slack_bot import SlackBot
+from models.paper_model import ArticleMetadata, Schedule
+from service.api_consumer import ResearchPaperSearcher
 
-class ArticleBot:
-    def __init__(self, strategy, chat_bot, schedule, extraction_tokens=None, bot_token=None):
-        self.strategy = strategy
-        self.chat_bot = chat_bot
-        self.extraction_tokens = extraction_tokens or {}
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+class ResearchBotScheduler:
+    def __init__(self, 
+                 schedule: Schedule, 
+                 bot_token: str, 
+                 extraction_tokens: dict) -> None:
+        self.schedule = schedule
         self.bot_token = bot_token
+        self.research_searcher = ResearchPaperSearcher(extraction_tokens)
+        
+        self.bots = {
+            "discord": DiscordBot,
+            "slack": SlackBot,
+            "matrix": MatrixBot,
+            # ... cualquier otro bot que pueda tener
+        }
 
-        @self.chat_bot.bot.event
-        async def on_ready():
-            print(f'Conectado como: {self.chat_bot.bot.user}')
+        # Inicializar el planificador
+        self.scheduler = AsyncIOScheduler()
+        cron_args = self.parse_cron_string(self.schedule.cron_schedule)
+        self.scheduler.add_job(self.run, trigger='cron', **cron_args)
+    
+    def parse_cron_string(self, cron_string: str) -> dict:
+        # Suponiendo un formato cron estándar "minuto hora día_del_mes mes día_de_la_semana"
+        # Puedes ajustar esto según tus necesidades.
+        minute, hour, day_of_month, month, day_of_week = cron_string.split()
+        return {
+            "minute": minute,
+            "hour": hour,
+            "day": day_of_month,
+            "month": month,
+            "day_of_week": day_of_week
+        }
 
-            for schedule_item in schedule:
-                app = schedule_item.get('app')
-                token = self.extraction_tokens.get(app)
-                
-                if app == "discord" and token:
-                    self.chat_bot = DiscordBot(token=self.bot_token, prefix="!")
-                # elif app == "slack" and token:  # Si decides implementar Slack
-                #     self.chat_bot = SlackBot(token=self.bot_token)
+    async def run(self):
+        # Realiza una búsqueda de artículos
+        articles = self.research_searcher.search(self.schedule.search_keywords)
+        
+        # Formatea los artículos para enviarlos como mensaje
+        message = self.format_articles(articles)
+        
+        # Selecciona el bot apropiado y envía el mensaje
+        if self.schedule.app in self.bots:
+            bot_class = self.bots[self.schedule.app]
+            bot_instance = bot_class(self.bot_token)
+            await bot_instance.connect()
+            await bot_instance.send_message(self.schedule.channel, message)
+            await bot_instance.disconnect()
 
-                exists = await self.chat_bot.channel_exists(schedule_item.get('channel'))
-                if not exists:
-                    print(f"Channel {schedule_item.get('channel')} doesn't exist or bot has no permissions.")
+    def format_articles(self, articles: List[ArticleMetadata]) -> str:
+        formatted_articles = [f"{article.title} - {article.link}" for article in articles]
+        return "\n".join(formatted_articles)
 
-                cron_time = schedule_item.get('cron_schedule', '')
-                if cron_time:
-                    @aiocron.crontab(cron_time)
-                    async def cronjob():
-                        for keyword in schedule_item.get('search_keywords', []):
-                            articles = self.get_articles(keyword)
-                            for article in articles:
-                                await self.chat_bot.send_message(schedule_item.get('channel'), article)
-
-        async def message_callback(message):
-            if message.content.startswith('!articles'):
-                articles = self.get_articles()
-                await message.channel.send('\n'.join(articles))
-
-        self.chat_bot.listen_messages(message_callback)
-
-    def get_articles(self, keyword=None):
-        return self.strategy.extract(keyword)
-
-    def run(self):
-        self.chat_bot.connect()
-
+    def start_scheduler(self):
+        self.scheduler.start()
