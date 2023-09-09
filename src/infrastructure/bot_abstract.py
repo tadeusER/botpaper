@@ -59,8 +59,9 @@ class AbstractChatBot(ABC):
         formatted_articles = []
         self.logger.info(f"Formatting articles...{len(articles)} found.")
         for article in articles:
-            formatted_articles.append(f"{article.title} - {article.link}")
-        return "\n".join(formatted_articles[:10])
+            formatted_articles.append(f"{article.title} - {article.link}- {article.published}")
+            formatted_articles.append("----"*10)
+        return "\n".join(formatted_articles)
 
     @abstractmethod
     async def start_bot(self):
