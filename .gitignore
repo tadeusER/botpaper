@@ -160,3 +160,5 @@ denv/
 #.idea/
 paperbot/
 .vscode/
+Pipfile.lock
+```
