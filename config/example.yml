@@ -1,7 +1,7 @@
 schedules:
   - channel: "daily-articles"
     app: discord
-    cron_schedule: "*/15 * * * *"  # Cada 15 minutos
+    cron_schedule: "*/5 * * * *"  # Cada 15 minutos
     search_keywords:
       - "IA"
       - "ml"

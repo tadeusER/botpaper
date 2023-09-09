@@ -1,34 +1,46 @@
-from random import random
+from random import choice
+from typing import List
 import discord
 from discord.ext import commands
-from bot import ResearchBotScheduler
-from infrastructure.bot_abstract import AbstractChatBot
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from models.logger_model import LoggerConfig
-from discord.ext import commands
-from infrastructure.bot_abstract import AbstractChatBot
-from models.logger_model import LoggerConfig
-import discord
+from models.paper_model import ArticleMetadata, Schedule
 
+from service.api_consumer import ResearchPaperSearcher
 
+config = LoggerConfig(name="DiscordBot", log_file="DiscordBot.log")
+logger = config.get_logger()
 class DiscordBot:
-
-    def __init__(self, token, prefix, ResearchBotSchedulerClass: ResearchBotScheduler):
+    def __init__(self, token, 
+                 research_paper_searcher: ResearchPaperSearcher, 
+                 crondict: dict,
+                 schedule: Schedule,
+                 prefix='!'):
         self.token = token
         self.prefix = prefix
-        self.bot = commands.Bot(command_prefix=self.prefix)
-        self.scheduler_class = ResearchBotSchedulerClass
+        self.schedule = schedule
+        self.intents = discord.Intents.default()
+        self.bot = commands.Bot(command_prefix=self.prefix, intents=self.intents)
+        self.research_paper_searcher = research_paper_searcher  # New attribute
+        self.scheduler = AsyncIOScheduler()
+        cron_args = crondict
+        self.scheduler.add_job(self.run, trigger='cron', **cron_args)  # New attribute
+
 
         # Registering events and commands
         self.register_events()
         self.register_commands()
+
     def get_channel_if(self, channel_name: str):
         target_channel = discord.utils.get(self.bot.get_all_channels(), name=channel_name)
         return target_channel
+
     def register_events(self):
         @self.bot.event
         async def on_ready():
-            print("Ready")
-            self.scheduler_class.start_scheduler()
+            await self.run()
+            self.scheduler.start()
+
 
         # If more events are needed, they can be added here
 
@@ -36,17 +48,43 @@ class DiscordBot:
         @self.bot.command(name='99', help='Responds with a random quote from Brooklyn 99')
         async def nine_nine(ctx):
             brooklyn_99_quotes = [
-                'I\'m the human form of the 💯 emoji.',
+                'I\'m the human form of the emoji.',
                 'Bingpot!',
                 'Cool. Cool cool cool cool cool cool cool, no doubt no doubt no doubt no doubt.'
             ]
-
-            response = random.choice(brooklyn_99_quotes)
+            response = choice(brooklyn_99_quotes)
             await ctx.send(response)
-        
+
         # If more commands are needed, they can be added here
 
-    def run(self):
-        self.bot.run(self.token)
+    async def notify(self, message):
+        try:
+            await self.bot.wait_until_ready()
+            channel = self.get_channel_if(self.schedule.channel)
+            if channel:
+                await channel.send(message)
+        except Exception as e:
+            logger.error(f"Error notifying channel: {e}")
 
+    async def run(self):
+        articles = self.research_paper_searcher.search(self.schedule.search_keywords)
+        
+        if not articles:
+            logger.warning("No articles found for the given search keywords.")
+            return
+
+        message = self.format_articles(articles)
+        await self.notify(message)  # Suponiendo que quieres usar el método 'notify' que ya está definido
+
+    def format_articles(self, articles: List[ArticleMetadata]) -> str:
+        formatted_articles = []
+        logger.info(f"Formatting articles...{len(articles)} found.")
+        for article in articles:
+            formatted_articles.append(f"{article.title} - {article.link}")
+        return "\n".join(formatted_articles[:10])
+    async def start_bot(self):
+        await self.bot.start(self.token)
+    def __del__(self):
+        if self.scheduler:
+            self.scheduler.shutdown()
 

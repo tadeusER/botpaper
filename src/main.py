@@ -10,45 +10,34 @@ from models.logger_model import LoggerConfig
 from models.paper_model import Schedule
 
 load_dotenv()
-
-DISCORD_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-SLACK_TOKEN = os.getenv('SLACK_BOT_TOKEN')
+ENV_VARS = {
+    "discord": "DISCORD_BOT_TOKEN",
+    "slack": "SLACK_BOT_TOKEN"
+}
+API_KEYS = ["XPLORE_API_KEY", "SPRINGER_API_KEY"]
 DEFAULT_YAML_PATH = os.getenv('DEFAULT_YAML_PATH')
-XPLORE_API_KEY = os.getenv('XPLORE_API_KEY')
-SPRINGER_API_KEY = os.getenv('SPRINGER_API_KEY')
+
 config = LoggerConfig(name="ResearchBot", log_file="research_bot.log")
 logger = config.get_logger()
 
-def check_api_keys():
+
+
+def check_env_vars(app):
     """
-    Verifica si las claves de API necesarias están presentes y devuelve una lista de las que faltan.
+    Checks if the necessary environment variables are set for the specified app.
     """
-    missing_keys = []
+    missing_vars = []
 
-    if not XPLORE_API_KEY:
-        missing_keys.append("XPLORE_API_KEY")
-    if not SPRINGER_API_KEY:
-        missing_keys.append("SPRINGER_API_KEY")
+    # Check API keys
+    for key in API_KEYS:
+        if not os.getenv(key):
+            missing_vars.append(key)
 
-    return missing_keys
-def check_tokens(app):
-    """
-    Verifica si los tokens necesarios para la aplicación especificada están presentes y devuelve una lista de los que faltan.
+    # Check bot tokens
+    if app in ENV_VARS and not os.getenv(ENV_VARS[app]):
+        missing_vars.append(ENV_VARS[app])
 
-    Args:
-        app (str): El nombre de la aplicación para la que se deben verificar los tokens.
-
-    Returns:
-        List[str]: Una lista de los tokens que faltan.
-    """
-    missing_tokens = []
-
-    if app == "discord" and not DISCORD_TOKEN:
-        missing_tokens.append("DISCORD_BOT_TOKEN")
-    elif app == "slack" and not SLACK_TOKEN:
-        missing_tokens.append("SLACK_BOT_TOKEN")
-
-    return missing_tokens
+    return missing_vars
 
 def check_yaml_exists(yaml_path):
     """
@@ -112,24 +101,23 @@ def getargs():
 
 async def run_scheduler(schedule: Schedule):
     extraction_tokens = {
-        "xplore": XPLORE_API_KEY,
-        "springer": SPRINGER_API_KEY,
+        "xplore": os.getenv("XPLORE_API_KEY"),
+        "springer": os.getenv("SPRINGER_API_KEY"),
     }
 
-    if schedule.app == "discord":
-        bot_token = DISCORD_TOKEN
-    elif schedule.app == "slack":
-        bot_token = SLACK_TOKEN
+    if schedule.app in ENV_VARS:
+        bot_token = os.getenv(ENV_VARS[schedule.app])
     else:
-        bot_token = None
+        logger.error(f"Unsupported app: {schedule.app}")
+        return
 
     scheduler = ResearchBotScheduler(schedule, bot_token, extraction_tokens)
-    await scheduler.start_scheduler()  # Asumiendo que start_scheduler es ahora una función asíncrona
+    await scheduler.initialize()
 
 async def main():
     args = getargs()
 
-    # Configurar la ruta del log basada en el argumento
+    # Configure log path based on the argument
     config = LoggerConfig(name="ResearchBot", log_file="research_bot.log", log_folder=args.logdir)
     logger = config.get_logger()
 
@@ -145,15 +133,10 @@ async def main():
     tasks = []
 
     for schedule in schedules:
-        missing_tokens = check_tokens(schedule.app)
-        missing_keys = check_api_keys()
+        missing_vars = check_env_vars(schedule.app)
 
-        if missing_tokens:
-            logger.error(f"Error for {schedule.app}: Missing environment variables: {', '.join(missing_tokens)}")
-            continue
-
-        if missing_keys:
-            logger.error(f"Error for {schedule.app}: Missing API keys: {', '.join(missing_keys)}")
+        if missing_vars:
+            logger.error(f"Error for {schedule.app}: Missing environment variables: {', '.join(missing_vars)}")
             continue
 
         logger.info(f"Starting scheduler for app: {schedule.app} and channel: {schedule.channel}")
@@ -161,11 +144,10 @@ async def main():
         task = asyncio.create_task(run_scheduler(schedule))
         tasks.append(task)
 
-    # Esperar a que todas las tareas finalicen
+    # Wait for all tasks to complete
     await asyncio.gather(*tasks)
 
     logger.info("All schedulers are now running.")
 
 if __name__ == "__main__":
     asyncio.run(main())
-
