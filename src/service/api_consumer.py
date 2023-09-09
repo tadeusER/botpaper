@@ -45,6 +45,27 @@ class ResearchPaperSearcher:
                     all_articles.extend(response.data)
         all_articles = self.filter_articles(all_articles)
         return all_articles
+    def filter_unique_articles(self, articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Filtra una lista de artículos para eliminar los que tienen títulos y enlaces repetidos.
+
+        Args:
+            articles (list): Lista de artículos a filtrar.
+
+        Returns:
+            list: Lista de artículos filtrados.
+        """
+        seen_titles = set()
+        seen_links = set()
+        unique_articles = []
+
+        for article in articles:
+            if article.title not in seen_titles and article.link not in seen_links:
+                seen_titles.add(article.title)
+                seen_links.add(article.link)
+                unique_articles.append(article)
+
+        return unique_articles
     def filter_articles(self, articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
         """
         Filtra una lista de artículos según una función de filtro específica.
@@ -56,7 +77,8 @@ class ResearchPaperSearcher:
         Returns:
             list: Lista de artículos filtrados.
         """
-        rest = self.sort_by_date(articles)
+        filtered = self.filter_unique_articles(articles)
+        rest = self.sort_by_date(filtered)
         return rest[:10]
 
     @staticmethod
