@@ -43,4 +43,31 @@ class ResearchPaperSearcher:
                 response = api.search_multiple_terms(terms)
                 if isinstance(response, APISuccessResponse):
                     all_articles.extend(response.data)
+        all_articles = self.filter_articles(all_articles)
         return all_articles
+    def filter_articles(self, articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Filtra una lista de artículos según una función de filtro específica.
+
+        Args:
+            articles (list): Lista de artículos a filtrar.
+            filter_func (callable): Función de filtro que toma un ArticleMetadata y devuelve un booleano.
+
+        Returns:
+            list: Lista de artículos filtrados.
+        """
+        rest = self.sort_by_date(articles)
+        return rest[:10]
+
+    @staticmethod
+    def sort_by_date(articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Ordena una lista de artículos por su fecha de publicación de forma descendente.
+
+        Args:
+            articles (list): Lista de artículos a ordenar.
+
+        Returns:
+            list: Lista de artículos ordenados por fecha.
+        """
+        return sorted(articles, key=lambda x: x.published, reverse=True)
