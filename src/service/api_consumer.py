@@ -43,4 +43,53 @@ class ResearchPaperSearcher:
                 response = api.search_multiple_terms(terms)
                 if isinstance(response, APISuccessResponse):
                     all_articles.extend(response.data)
+        all_articles = self.filter_articles(all_articles)
         return all_articles
+    def filter_unique_articles(self, articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Filtra una lista de artículos para eliminar los que tienen títulos y enlaces repetidos.
+
+        Args:
+            articles (list): Lista de artículos a filtrar.
+
+        Returns:
+            list: Lista de artículos filtrados.
+        """
+        seen_titles = set()
+        seen_links = set()
+        unique_articles = []
+
+        for article in articles:
+            if article.title not in seen_titles and article.link not in seen_links:
+                seen_titles.add(article.title)
+                seen_links.add(article.link)
+                unique_articles.append(article)
+
+        return unique_articles
+    def filter_articles(self, articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Filtra una lista de artículos según una función de filtro específica.
+
+        Args:
+            articles (list): Lista de artículos a filtrar.
+            filter_func (callable): Función de filtro que toma un ArticleMetadata y devuelve un booleano.
+
+        Returns:
+            list: Lista de artículos filtrados.
+        """
+        filtered = self.filter_unique_articles(articles)
+        rest = self.sort_by_date(filtered)
+        return rest[:10]
+
+    @staticmethod
+    def sort_by_date(articles: List[ArticleMetadata]) -> List[ArticleMetadata]:
+        """
+        Ordena una lista de artículos por su fecha de publicación de forma descendente.
+
+        Args:
+            articles (list): Lista de artículos a ordenar.
+
+        Returns:
+            list: Lista de artículos ordenados por fecha.
+        """
+        return sorted(articles, key=lambda x: x.published, reverse=True)

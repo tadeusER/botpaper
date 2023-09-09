@@ -6,6 +6,16 @@ name = "pypi"
 [packages]
 "discord.py" = "*"
 pycurl = "*"
+pyyaml = "*"
+load-dotenv = "*"
+apscheduler = "*"
+feedparser = "*"
+requests = "*"
+nio = "*"
+matrix-nio = "*"
+slack-sdk = "*"
+flask = "*"
+slackeventsapi = "*"
 
 [dev-packages]
 
