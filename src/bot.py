@@ -19,7 +19,7 @@ class ResearchBotScheduler:
 
         self.schedule = schedule
         self.bot_token = bot_token
-        self.research_searcher = ResearchPaperSearcher(extraction_tokens)
+        self.research_searcher = ResearchPaperSearcher(extraction_tokens, logger=logger)
         self.observers = []
 
         cron_args = self.parse_cron_string(self.schedule.cron_schedule)
