@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List
 
 class ArticleMetadata:
@@ -7,10 +7,13 @@ class ArticleMetadata:
         self.summary = summary
         self.published = self._parse_date(published)
         self.link = link
-
     def _parse_date(self, date_str: str) -> datetime:
         """Convierte la fecha en string a un objeto datetime."""
-        return datetime.fromisoformat(date_str)
+        if date_str.endswith('Z'):
+            date_str = date_str[:-1]  # quitar la 'Z'
+            return datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        else:
+            return datetime.fromisoformat(date_str)
 
     def __repr__(self) -> str:
         return (f"ArticleMetadata(title={self.title!r}, "

@@ -113,7 +113,7 @@ class CambridgeAPI:
             return APISuccessResponse(data=articles)
         except Exception as e:
             return APIErrorResponse(error_message=str(e))
-    def search_multiple_terms(self, terms: List[str]) -> Union[List[APIResponse], APIErrorResponse]:
+    def search_multiple_terms(self, terms: List[str]) -> Union[APISuccessResponse, APIErrorResponse]:
         """
         Realiza búsquedas para cada término en la lista de términos y almacena todos los resultados en una lista.
 
@@ -127,10 +127,12 @@ class CambridgeAPI:
 
         for term in terms:
             term_results = self.search(term=term)
-            if isinstance(term_results, APIErrorResponse):
-                return term_results
-            all_results.append(term_results)
-        return all_results
+            if isinstance(term_results, APISuccessResponse):
+                all_results.extend(term_results.data)
+        if all_results:
+            return APISuccessResponse(data=all_results)
+        else:
+            return APIErrorResponse(error_message="No results found for any term.")
 if __name__ == "__main__":
     api = CambridgeAPI(max_results=20)
     results = api.search(term="IA", searchDateFrom="2020-01-01T00:00:00.000Z")

@@ -83,6 +83,8 @@ class XploreAPI(APIExtraction):
             return combined_articles
         else:
             return APIErrorResponse(error_message="No results found for any term.")
+    def is_valid_sort_value(self, value) -> bool:
+        pass
 if __name__ == "__main__":
     api = XploreAPI(max_results=20)
     results_combined = api.search(["Machine Learning", "Smith"], ["title", "author"], ["OR"])

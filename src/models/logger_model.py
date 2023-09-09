@@ -1,7 +1,7 @@
 import logging
-
+import os
 class LoggerConfig:
-    def __init__(self, name: str, log_file: str, log_level: int = logging.INFO):
+    def __init__(self, name: str, log_file: str, log_level: int = logging.INFO, log_folder: str = "./logs"):
         """Inicializa el configurador del logger.
 
         Args:
@@ -14,7 +14,12 @@ class LoggerConfig:
         self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         # Configura el handler para escribir logs en un archivo
-        file_handler = logging.FileHandler(log_file)
+        path_logfile = os.path.join(log_folder, log_file)
+        if not os.path.exists(log_folder):
+            os.makedirs(log_folder)
+        if not os.path.exists(path_logfile):
+            open(path_logfile, 'w').close()
+        file_handler = logging.FileHandler(path_logfile)
         file_handler.setFormatter(self.formatter)
         self.logger.addHandler(file_handler)
 

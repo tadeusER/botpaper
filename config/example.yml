@@ -1,16 +1,8 @@
 schedules:
   - channel: "daily-articles"
     app: discord
-    cron_schedule: "0 9 * * *"  # Todos los días a las 9 AM
+    cron_schedule: "*/15 * * * *"  # Cada 15 minutos
     search_keywords:
-      - "keyword1"
-      - "keyword2"
-      - "keyword3"
-
-  - channel: "weekly-articles"
-    app: slack
-    cron_schedule: "0 10 * * MON"  # Todos los lunes a las 10 AM
-    search_keywords:
-      - "weekly-keyword1"
-      - "weekly-keyword2"
+      - "IA"
+      - "ml"
 

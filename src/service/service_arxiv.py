@@ -126,7 +126,7 @@ class ArxivAPI(APIExtraction):
         except Exception as e:
             return APIErrorResponse(error_message=str(e))
 
-    def search_multiple_terms(self, terms) -> Union[List[APIResponse], APIErrorResponse]:
+    def search_multiple_terms(self, terms) -> Union[APISuccessResponse, APIErrorResponse]:
         """_summary_
         Realiza una búsqueda en la API de arXiv para cada término proporcionado y devuelve una lista de respuestas de la API con la información de los artículos encontrados.
 
@@ -146,9 +146,11 @@ class ArxivAPI(APIExtraction):
             if isinstance(response, APISuccessResponse):
                 combined_articles.extend(response.data)
         if combined_articles:
-            return combined_articles
+            return APISuccessResponse(data=combined_articles)
         else:
             return APIErrorResponse(error_message="No results found for any term.")
+    def is_valid_sort_value(self, value) -> bool:
+        pass
 
 
 if __name__ == "__main__":

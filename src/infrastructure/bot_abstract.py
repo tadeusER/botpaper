@@ -2,6 +2,16 @@ from abc import ABC, abstractmethod
 
 class AbstractChatBot(ABC):
 
+    def __init__(self, token, prefix="!"):
+        """
+        Initialize the bot with the given configuration.
+
+        Args:
+        - config (dict): Configuration parameters for the bot.
+        """
+        self.token = token
+        self.prefix = prefix
+
     @abstractmethod
     async def connect(self):
         """
@@ -36,4 +46,25 @@ class AbstractChatBot(ABC):
         - callback (func): A function to be called when a message is received.
         """
         pass
+
+    @abstractmethod
+    async def handle_error(self, error):
+        """
+        Handle any errors that occur while interacting with the chat platform.
+
+        Args:
+        - error (Exception): The error that occurred.
+        """
+        pass
+
+    @abstractmethod
+    async def set_configuration(self, config):
+        """
+        Set or update the bot's configuration.
+
+        Args:
+        - config (dict): Configuration parameters to be updated or set.
+        """
+        self.config.update(config)
+
 

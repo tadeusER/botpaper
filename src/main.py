@@ -1,6 +1,6 @@
+import asyncio
 import os
 import argparse
-import threading
 from typing import List
 import yaml
 from dotenv import load_dotenv
@@ -20,6 +20,9 @@ config = LoggerConfig(name="ResearchBot", log_file="research_bot.log")
 logger = config.get_logger()
 
 def check_api_keys():
+    """
+    Verifica si las claves de API necesarias están presentes y devuelve una lista de las que faltan.
+    """
     missing_keys = []
 
     if not XPLORE_API_KEY:
@@ -28,8 +31,16 @@ def check_api_keys():
         missing_keys.append("SPRINGER_API_KEY")
 
     return missing_keys
-
 def check_tokens(app):
+    """
+    Verifica si los tokens necesarios para la aplicación especificada están presentes y devuelve una lista de los que faltan.
+
+    Args:
+        app (str): El nombre de la aplicación para la que se deben verificar los tokens.
+
+    Returns:
+        List[str]: Una lista de los tokens que faltan.
+    """
     missing_tokens = []
 
     if app == "discord" and not DISCORD_TOKEN:
@@ -40,8 +51,26 @@ def check_tokens(app):
     return missing_tokens
 
 def check_yaml_exists(yaml_path):
+    """
+    Verifica si el archivo YAML especificado existe.
+
+    Args:
+        yaml_path (str): La ruta al archivo YAML.
+
+    Returns:
+        bool: True si el archivo existe, False de lo contrario.
+    """
     return os.path.exists(yaml_path)
 def get_schedules_from_yaml(yaml_path: str) -> List[Schedule]:
+    """
+    Lee los datos de programación de un archivo YAML y devuelve una lista de objetos Schedule.
+
+    Args:
+        yaml_path (str): La ruta al archivo YAML.
+
+    Returns:
+        List[Schedule]: Una lista de objetos Schedule.
+    """
     schedules = []
     with open(yaml_path, 'r') as file:
         data = yaml.safe_load(file)
@@ -56,6 +85,15 @@ def get_schedules_from_yaml(yaml_path: str) -> List[Schedule]:
                 schedules.append(schedule)
     return schedules
 def get_apps_from_yaml(yaml_path):
+    """
+    Lee los datos de programación de un archivo YAML y devuelve una lista de las aplicaciones programadas.
+
+    Args:
+        yaml_path (str): La ruta al archivo YAML.
+
+    Returns:
+        List[str]: Una lista de las aplicaciones programadas.
+    """
     apps = []
     with open(yaml_path, 'r') as file:
         data = yaml.safe_load(file)
@@ -64,33 +102,36 @@ def get_apps_from_yaml(yaml_path):
                 apps.append(schedule['app'])
     return apps
 
+
 def getargs():
     parser = argparse.ArgumentParser(description="Run a bot for specific apps.")
     parser.add_argument("--config", help="Path to the YAML configuration file.", default=DEFAULT_YAML_PATH)
+    parser.add_argument("--logdir", help="Directory path for logs.", default="./logs")  # Argumento para el directorio de logs
     args = parser.parse_args()
     return args
 
-def run_scheduler(schedule: Schedule):
+async def run_scheduler(schedule: Schedule):
     extraction_tokens = {
         "xplore": XPLORE_API_KEY,
         "springer": SPRINGER_API_KEY,
-        # Puedes agregar otros tokens aquí
     }
 
-    # Elegir el token del bot basado en el app
     if schedule.app == "discord":
         bot_token = DISCORD_TOKEN
     elif schedule.app == "slack":
         bot_token = SLACK_TOKEN
     else:
-        bot_token = None  # o manejar esto de otra manera
+        bot_token = None
 
-    # Iniciar el ResearchBotScheduler
     scheduler = ResearchBotScheduler(schedule, bot_token, extraction_tokens)
-    scheduler.start_scheduler()
+    await scheduler.start_scheduler()  # Asumiendo que start_scheduler es ahora una función asíncrona
 
-def main():
+async def main():
     args = getargs()
+
+    # Configurar la ruta del log basada en el argumento
+    config = LoggerConfig(name="ResearchBot", log_file="research_bot.log", log_folder=args.logdir)
+    logger = config.get_logger()
 
     if not check_yaml_exists(args.config):
         logger.error(f"The specified YAML configuration file at '{args.config}' does not exist.")
@@ -101,7 +142,7 @@ def main():
         logger.error("No schedules specified in the YAML configuration.")
         exit(1)
 
-    threads = []
+    tasks = []
 
     for schedule in schedules:
         missing_tokens = check_tokens(schedule.app)
@@ -117,17 +158,14 @@ def main():
 
         logger.info(f"Starting scheduler for app: {schedule.app} and channel: {schedule.channel}")
 
-        # Usar threading para ejecutar cada ResearchBotScheduler en su propio hilo
-        thread = threading.Thread(target=run_scheduler, args=(schedule,))
-        thread.start()
-        threads.append(thread)
+        task = asyncio.create_task(run_scheduler(schedule))
+        tasks.append(task)
 
-    # Esperar a que todos los hilos finalicen
-    for thread in threads:
-        thread.join()
+    # Esperar a que todas las tareas finalicen
+    await asyncio.gather(*tasks)
 
     logger.info("All schedulers are now running.")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 

@@ -17,7 +17,7 @@ class ResearchPaperSearcher:
         self.services = {
             "arxiv": ArxivAPI,
             "cambridge": CambridgeAPI,
-            "ieee": XploreAPI,
+            "xplore": XploreAPI,
         }
 
     def search(self, terms: List[str]) -> List[ArticleMetadata]:
@@ -38,5 +38,9 @@ class ResearchPaperSearcher:
                 response = api.search_multiple_terms(terms)
                 if isinstance(response, APISuccessResponse):
                     all_articles.extend(response.data)
-
+            else:
+                api = service_class()
+                response = api.search_multiple_terms(terms)
+                if isinstance(response, APISuccessResponse):
+                    all_articles.extend(response.data)
         return all_articles
