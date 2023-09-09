@@ -1,33 +1,23 @@
 from random import choice
-from typing import List
 import discord
 from discord.ext import commands
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from infrastructure.bot_abstract import AbstractChatBot
 from models.logger_model import LoggerConfig
-from models.paper_model import ArticleMetadata, Schedule
-
+from models.paper_model import Schedule
 from service.api_consumer import ResearchPaperSearcher
 
 config = LoggerConfig(name="DiscordBot", log_file="DiscordBot.log")
 logger = config.get_logger()
-class DiscordBot:
+class DiscordBot(AbstractChatBot):
     def __init__(self, token, 
                  research_paper_searcher: ResearchPaperSearcher, 
                  crondict: dict,
                  schedule: Schedule,
                  prefix='!'):
-        self.token = token
-        self.prefix = prefix
-        self.schedule = schedule
+        super().__init__(token, research_paper_searcher, crondict, schedule, prefix)
         self.intents = discord.Intents.default()
         self.bot = commands.Bot(command_prefix=self.prefix, intents=self.intents)
-        self.research_paper_searcher = research_paper_searcher  # New attribute
-        self.scheduler = AsyncIOScheduler()
-        cron_args = crondict
-        self.scheduler.add_job(self.run, trigger='cron', **cron_args)  # New attribute
-
-
-        # Registering events and commands
+        
         self.register_events()
         self.register_commands()
 
@@ -40,7 +30,6 @@ class DiscordBot:
         async def on_ready():
             await self.run()
             self.scheduler.start()
-
 
         # If more events are needed, they can be added here
 
@@ -66,25 +55,9 @@ class DiscordBot:
         except Exception as e:
             logger.error(f"Error notifying channel: {e}")
 
-    async def run(self):
-        articles = self.research_paper_searcher.search(self.schedule.search_keywords)
-        
-        if not articles:
-            logger.warning("No articles found for the given search keywords.")
-            return
-
-        message = self.format_articles(articles)
-        await self.notify(message)  # Suponiendo que quieres usar el método 'notify' que ya está definido
-
-    def format_articles(self, articles: List[ArticleMetadata]) -> str:
-        formatted_articles = []
-        logger.info(f"Formatting articles...{len(articles)} found.")
-        for article in articles:
-            formatted_articles.append(f"{article.title} - {article.link}")
-        return "\n".join(formatted_articles[:10])
     async def start_bot(self):
         await self.bot.start(self.token)
+
     def __del__(self):
         if self.scheduler:
             self.scheduler.shutdown()
-

@@ -1,70 +1,74 @@
 from abc import ABC, abstractmethod
+from typing import List
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from models.logger_model import LoggerConfig
+from models.paper_model import ArticleMetadata, Schedule
+from service.api_consumer import ResearchPaperSearcher
 
 class AbstractChatBot(ABC):
 
-    def __init__(self, token, prefix="!"):
-        """
-        Initialize the bot with the given configuration.
-
-        Args:
-        - config (dict): Configuration parameters for the bot.
-        """
+    def __init__(self, token, 
+                 research_paper_searcher: ResearchPaperSearcher, 
+                 crondict: dict, 
+                 schedule: Schedule, 
+                 prefix='!'):
         self.token = token
         self.prefix = prefix
+        self.schedule = schedule
+        self.research_paper_searcher = research_paper_searcher  
+        self.scheduler = AsyncIOScheduler()
+        cron_args = crondict
+        self.scheduler.add_job(self.run, trigger='cron', **cron_args)
+        
+        # Logger setup inside class
+        config = LoggerConfig(name="ChatBot", log_file="ChatBot.log")
+        self.logger = config.get_logger()
 
     @abstractmethod
-    async def connect(self):
-        """
-        Connect the bot to the chat platform.
-        """
+    def get_channel_if(self, channel_name: str):
+        """Retrieve a chat channel by its name. Platform-specific."""
         pass
 
     @abstractmethod
-    async def disconnect(self):
-        """
-        Disconnect the bot from the chat platform.
-        """
+    def register_events(self):
+        """Register bot-related events. Platform-specific."""
         pass
 
     @abstractmethod
-    async def send_message(self, channel, message):
-        """
-        Send a message to a specified channel.
-
-        Args:
-        - channel (str): The channel where the message should be sent.
-        - message (str): The message to be sent.
-        """
+    def register_commands(self):
+        """Register bot commands. Platform-specific."""
         pass
 
-    @abstractmethod
-    async def listen_messages(self, callback):
-        """
-        Start listening for incoming messages and call the provided callback when a message is received.
+    async def notify(self, message):
+        """Send a notification message. Should be implemented in derived classes based on platform specifics."""
+        pass  
 
-        Args:
-        - callback (func): A function to be called when a message is received.
-        """
+    async def run(self):
+        """Search for articles and notify the results."""
+        articles = self.research_paper_searcher.search(self.schedule.search_keywords)
+        
+        if not articles:
+            self.logger.warning("No articles found for the given search keywords.")
+            return
+
+        message = self.format_articles(articles)
+        await self.notify(message)
+
+    def format_articles(self, articles: List[ArticleMetadata]) -> str:
+        """Format the list of articles into a string."""
+        formatted_articles = []
+        self.logger.info(f"Formatting articles...{len(articles)} found.")
+        for article in articles:
+            formatted_articles.append(f"{article.title} - {article.link}")
+        return "\n".join(formatted_articles[:10])
+
+    @abstractmethod
+    async def start_bot(self):
+        """Start the bot. This might differ based on the chat platform being used."""
         pass
 
-    @abstractmethod
-    async def handle_error(self, error):
-        """
-        Handle any errors that occur while interacting with the chat platform.
-
-        Args:
-        - error (Exception): The error that occurred.
-        """
-        pass
-
-    @abstractmethod
-    async def set_configuration(self, config):
-        """
-        Set or update the bot's configuration.
-
-        Args:
-        - config (dict): Configuration parameters to be updated or set.
-        """
-        self.config.update(config)
-
+    def __del__(self):
+        """Shutdown the scheduler when the bot is destroyed."""
+        if self.scheduler:
+            self.scheduler.shutdown()
 
