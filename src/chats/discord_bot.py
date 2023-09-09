@@ -58,6 +58,3 @@ class DiscordBot(AbstractChatBot):
     async def start_bot(self):
         await self.bot.start(self.token)
 
-    def __del__(self):
-        if self.scheduler:
-            self.scheduler.shutdown()
