@@ -49,9 +49,12 @@ class DiscordBot(AbstractChatBot):
     async def notify(self, message):
         try:
             await self.bot.wait_until_ready()
+            logger.info(f"searching channel {self.schedule.channel}")
             channel = self.get_channel_if(self.schedule.channel)
+            logger.info(f"Enviando mensaje a {channel}")
             if channel:
                 await channel.send(message)
+            logger.info(f"Mensaje enviado")
         except Exception as e:
             logger.error(f"Error notifying channel: {e}")
 

@@ -6,7 +6,7 @@ from models.api_model import APIErrorResponse, APIResponse, APISuccessResponse
 class APIExtraction(ABC):
 
     @abstractmethod
-    def search(self, queries, search_types, operators=None) -> APISuccessResponse:
+    def search(self, queries, search_types, operators=None) -> APIResponse:
         pass
 
     @abstractmethod
@@ -22,5 +22,5 @@ class APIExtraction(ABC):
         pass
 
     @abstractmethod
-    def search_multiple_terms(self, terms) -> Union[List[APIResponse], APIErrorResponse]:
+    def search_multiple_terms(self, terms) -> Union[APISuccessResponse, APIErrorResponse]:
         pass
