@@ -6,6 +6,7 @@ from models.api_model import APIResponse, APISuccessResponse
 from service.service_arxiv import ArxivAPI
 from service.service_cambrige import CambridgeAPI
 from service.service_explorerieee import XploreAPI
+from service.service_springer import SpringerAPI
 
 class ResearchPaperSearcher:
     def __init__(self, tokens: Dict[str, str], logger: Optional[logging.Logger] = None):
@@ -21,6 +22,7 @@ class ResearchPaperSearcher:
             "arxiv": ArxivAPI,
             "cambridge": CambridgeAPI,
             "xplore": XploreAPI,
+            "springer": SpringerAPI
         }
         self.logger = logger or logging.getLogger(__name__)
         self.logger.info("ResearchPaperSearcher initialized.")

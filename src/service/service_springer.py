@@ -1,6 +1,11 @@
+from typing import Union
 import requests
 
-class SpringerAPI:
+from infrastructure.api_abstract import APIExtraction
+from models.api_model import APIErrorResponse, APIResponse, APISuccessResponse
+from models.paper_model import ArticleMetadata
+
+class SpringerAPI(APIExtraction):
     """
     Clase que proporciona una interfaz para buscar artículos en Springer API.
     
@@ -58,7 +63,7 @@ class SpringerAPI:
 
         return ' AND '.join(query_parts)
 
-    def search(self, **kwargs):
+    def search(self, **kwargs)-> APIResponse:
         """
         Realiza una búsqueda en Springer API y devuelve los resultados.
 
@@ -66,7 +71,7 @@ class SpringerAPI:
             **kwargs: Argumentos variables que se pasarán al constructor de consultas.
 
         Returns:
-            list: Una lista de diccionarios que representan los artículos que coinciden con la consulta.
+            APISuccessResponse: Respuesta con la lista de ArticleMetadata que coinciden con la consulta.
         """
         query = self.construct_query(**kwargs)
 
@@ -77,26 +82,36 @@ class SpringerAPI:
         }
 
         response = requests.get(self.BASE_URL, params=params)
-        return response.json().get('records', [])
+        records = response.json().get('records', [])
+        articles = []
 
-    def search_multiple_terms(self, terms, **kwargs):
-        """
-        Realiza búsquedas múltiples en Springer API y agrega todos los resultados en una lista.
+        for r in records:
+            try:
+                article = ArticleMetadata(
+                    title=r['title'],
+                    summary=r['abstract'],
+                    published=r['publicationDate'],
+                    link=r['doi']
+                )
+                articles.append(article)
+            except Exception as e:
+                print(f"Error al mapear el registro: {r}. Error: {e}")
 
-        Args:
-            terms (list): Lista de términos a buscar.
-            **kwargs: Argumentos variables que se pasarán al constructor de consultas.
+        if articles:
+            return APISuccessResponse(data=articles)
+        else:
+            return APIErrorResponse(error_message="No se pudo mapear ningún registro.")
 
-        Returns:
-            list: Una lista de diccionarios que representan los artículos que coinciden con las consultas.
-        """
+    def search_multiple_terms(self, terms, **kwargs) -> Union[APISuccessResponse, APIErrorResponse]:
         all_results = []
-
-        for term in terms:
-            term_results = self.search(term=term, **kwargs)
-            all_results.extend(term_results)
-
-        return all_results
+        try:
+            for term in terms:
+                term_results = self.search(term=term, **kwargs)
+                if isinstance(term_results, APISuccessResponse):
+                    all_results.extend(term_results.data)
+            return APISuccessResponse(data=all_results)
+        except Exception as e:
+            return APIErrorResponse(error_message=str(e))
 
 if __name__ == "__main__":
     YOUR_API_KEY = "yourKeyHere"
