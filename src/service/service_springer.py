@@ -20,7 +20,7 @@ class SpringerAPI(APIExtraction):
 
     BASE_URL = "http://api.springernature.com/metadata/json"
 
-    def __init__(self, api_key, default_results=10):
+    def __init__(self, api_access_key, default_results=10):
         """
         Inicializa una nueva instancia de la clase SpringerAPI.
         
@@ -28,7 +28,7 @@ class SpringerAPI(APIExtraction):
             api_key (str): La clave de API para Springer.
             default_results (int): El número predeterminado de resultados que se deben devolver por búsqueda.
         """
-        self.api_key = api_key
+        self.api_key = api_access_key
         self.default_results = default_results
 
     def construct_query(self, term=None, title=None, orgname=None, journal=None, book=None, name=None):
@@ -112,7 +112,14 @@ class SpringerAPI(APIExtraction):
             return APISuccessResponse(data=all_results)
         except Exception as e:
             return APIErrorResponse(error_message=str(e))
+    def is_valid_search_type(self, search_type) -> bool:
+        # Puedes definir una lista de tipos de búsqueda válidos y verificar si el tipo proporcionado está en esa lista.
+        valid_types = ["term", "title", "orgname", "journal", "book", "name"]
+        return search_type in valid_types
 
+    def is_valid_sort_value(self, value) -> bool:
+        # Por simplicidad, puedes definir que cualquier valor es válido. Ajusta esto según tus necesidades.
+        return True
 if __name__ == "__main__":
     YOUR_API_KEY = "yourKeyHere"
     api = SpringerAPI(api_key=YOUR_API_KEY, default_results=10)
