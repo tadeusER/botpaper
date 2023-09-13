@@ -16,6 +16,7 @@ matrix-nio = "*"
 slack-sdk = "*"
 flask = "*"
 slackeventsapi = "*"
+pydeps = "*"
 
 [dev-packages]
 
