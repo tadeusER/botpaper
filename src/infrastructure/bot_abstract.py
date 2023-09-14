@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import time
 from typing import List
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from models.logger_model import LoggerConfig
@@ -62,7 +63,7 @@ class AbstractChatBot(ABC):
 
             # Espera 120 segundos antes de continuar con el siguiente grupo de artículos.
             if i + self.chunk_size < len(articles):
-                await asyncio.sleep(120)
+                time.sleep(120)
     def format_articles(self, articles: List[ArticleMetadata]) -> str:
         """Format the list of articles into a string."""
         formatted_articles = []
