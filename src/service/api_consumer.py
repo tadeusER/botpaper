@@ -75,7 +75,7 @@ class ResearchPaperSearcher:
             self.logger.info("Applying article filters...")
             filtered = self.filter_unique_articles(articles)
             rest = self.sort_by_date(filtered)
-            return rest
+            return rest[:50]
         except Exception as e:
             self.logger.error(f"An error occurred while filtering articles: {e}")
             return []
