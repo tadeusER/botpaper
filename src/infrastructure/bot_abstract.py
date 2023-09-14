@@ -11,10 +11,10 @@ class AbstractChatBot(ABC):
     def __init__(self, token, 
                  research_paper_searcher: ResearchPaperSearcher, 
                  crondict: dict, 
-                 schedule: Schedule, 
+                 schedule: Schedule,
+                 prefix='!', 
                  chunk_size: int = 10,
-                 timesleepmsg: int = 120,
-                 prefix='!'):
+                 timesleepmsg: int = 120):
         self.token = token
         self.prefix = prefix
         self.schedule = schedule
@@ -55,14 +55,14 @@ class AbstractChatBot(ABC):
         if not articles:
             self.logger.warning("No articles found for the given search keywords.")
             return
-
+        self.logger.info(f"chunk_size: {self.chunk_size}")
         for i in range(0, len(articles), self.chunk_size):
             chunk = articles[i:i + self.chunk_size]
             message = self.format_articles(chunk)
             await self.notify(message)
-
             # Espera 120 segundos antes de continuar con el siguiente grupo de artículos.
             if i + self.chunk_size < len(articles):
+                self.logger.info(f"Sleeping for {self.timesleepmsg} seconds...")
                 time.sleep(120)
     def format_articles(self, articles: List[ArticleMetadata]) -> str:
         """Format the list of articles into a string."""
