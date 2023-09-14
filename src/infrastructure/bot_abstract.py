@@ -12,7 +12,7 @@ class AbstractChatBot(ABC):
                  crondict: dict, 
                  schedule: Schedule, 
                  chunk_size: int = 10,
-                 timesleepmsg int = 120,
+                 timesleepmsg: int = 120,
                  prefix='!'):
         self.token = token
         self.prefix = prefix
